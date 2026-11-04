@@ -305,6 +305,7 @@ class ClientWindowItem {
   String sectorId;
   String sectorName;
   double sectorPricePerM2;
+  String sectorColor;
   double widthCm;
   double heightCm;
   int quantity;
@@ -350,6 +351,7 @@ class ClientWindowItem {
     required this.sectorId,
     required this.sectorName,
     required this.sectorPricePerM2,
+    this.sectorColor = 'بيج',
     required this.widthCm,
     required this.heightCm,
     this.quantity = 1,
@@ -458,6 +460,7 @@ class ClientWindowItem {
         'sectorId': sectorId,
         'sectorName': sectorName,
         'sectorPricePerM2': sectorPricePerM2,
+        'sectorColor': sectorColor,
         'widthCm': widthCm,
         'heightCm': heightCm,
         'quantity': quantity,
@@ -498,6 +501,7 @@ class ClientWindowItem {
         sectorId: json['sectorId'] ?? '',
         sectorName: json['sectorName'] ?? '',
         sectorPricePerM2: (json['sectorPricePerM2'] as num?)?.toDouble() ?? 2500.0,
+        sectorColor: json['sectorColor']?.toString() ?? 'بيج',
         widthCm: (json['widthCm'] as num?)?.toDouble() ?? 100.0,
         heightCm: (json['heightCm'] as num?)?.toDouble() ?? 100.0,
         quantity: json['quantity'] ?? 1,
@@ -538,6 +542,8 @@ class ClientRecord {
   String createdAt;
   String notes;
   double discountAmount;
+  double depositAmount;
+  double archCost;
   List<ClientWindowItem> items;
 
   ClientRecord({
@@ -548,6 +554,8 @@ class ClientRecord {
     required this.createdAt,
     this.notes = '',
     this.discountAmount = 0.0,
+    this.depositAmount = 0.0,
+    this.archCost = 0.0,
     required this.items,
   });
 
@@ -559,6 +567,8 @@ class ClientRecord {
         'createdAt': createdAt,
         'notes': notes,
         'discountAmount': discountAmount,
+        'depositAmount': depositAmount,
+        'archCost': archCost,
         'items': items.map((e) => e.toJson()).toList(),
       };
 
@@ -570,6 +580,8 @@ class ClientRecord {
         createdAt: json['createdAt'] ?? '',
         notes: json['notes'] ?? '',
         discountAmount: (json['discountAmount'] as num?)?.toDouble() ?? 0.0,
+        depositAmount: (json['depositAmount'] as num?)?.toDouble() ?? 0.0,
+        archCost: (json['archCost'] as num?)?.toDouble() ?? 0.0,
         items: (json['items'] as List<dynamic>?)
                 ?.map((e) => ClientWindowItem.fromJson(Map<String, dynamic>.from(e)))
                 .toList() ??

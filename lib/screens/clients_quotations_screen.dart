@@ -311,6 +311,8 @@ class _ClientQuotationEditorPageState extends State<ClientQuotationEditorPage>
   final _clientPhoneCtrl = TextEditingController();
   final _clientAddressCtrl = TextEditingController();
   final _discountCtrl = TextEditingController(text: '0');
+  final _depositCtrl = TextEditingController(text: '0');
+  final _archCostCtrl = TextEditingController(text: '0');
   final _notesCtrl = TextEditingController();
 
   List<ClientWindowItem> _items = [];
@@ -329,6 +331,8 @@ class _ClientQuotationEditorPageState extends State<ClientQuotationEditorPage>
       _clientPhoneCtrl.text = ex.clientPhone;
       _clientAddressCtrl.text = ex.clientAddress;
       _discountCtrl.text = ex.discountAmount.toStringAsFixed(0);
+      _depositCtrl.text = ex.depositAmount.toStringAsFixed(0);
+      _archCostCtrl.text = ex.archCost.toStringAsFixed(0);
       _notesCtrl.text = ex.notes;
       _items = ex.items
           .map((e) => ClientWindowItem.fromJson(e.toJson()))
@@ -352,6 +356,8 @@ class _ClientQuotationEditorPageState extends State<ClientQuotationEditorPage>
       createdAt: _createdAt,
       notes: _notesCtrl.text.trim(),
       discountAmount: double.tryParse(_discountCtrl.text.trim()) ?? 0.0,
+      depositAmount: double.tryParse(_depositCtrl.text.trim()) ?? 0.0,
+      archCost: double.tryParse(_archCostCtrl.text.trim()) ?? 0.0,
       items: _items,
     );
   }
@@ -394,6 +400,7 @@ class _ClientQuotationEditorPageState extends State<ClientQuotationEditorPage>
     String openType = existing?.openType ?? 'جرار';
     String barType = existing?.barType ?? 'بار عادي';
     String openDirection = existing?.openDirection ?? 'يمين للداخل';
+    String sectorColor = existing?.sectorColor ?? 'بيج';
 
     int sashCount = existing?.sashCount ?? selectedSector.defaultSashCount;
     bool hasGlass = existing?.hasGlass ?? true;
@@ -492,6 +499,7 @@ class _ClientQuotationEditorPageState extends State<ClientQuotationEditorPage>
                           sashCount: sashCount,
                           barType: barType,
                           openDirection: openDirection,
+                          sectorColor: sectorColor,
                           hasTopFixed: hasTopFixed,
                           topFixedHeightCm: double.tryParse(topFixedCtrl.text.trim()) ?? 40.0,
                           hasBottomFixed: hasBottomFixed,
@@ -732,6 +740,23 @@ class _ClientQuotationEditorPageState extends State<ClientQuotationEditorPage>
                                 ],
                                 onChanged: (v) {
                                   if (v != null) setModalState(() => barType = v);
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: sectorColor,
+                                decoration: const InputDecoration(labelText: 'لون القطاع', border: OutlineInputBorder(), isDense: true),
+                                items: const [
+                                  DropdownMenuItem(value: 'بيج', child: Text('بيج')),
+                                  DropdownMenuItem(value: 'أبيض', child: Text('أبيض')),
+                                  DropdownMenuItem(value: 'أسود', child: Text('أسود')),
+                                  DropdownMenuItem(value: 'رمادي', child: Text('رمادي')),
+                                  DropdownMenuItem(value: 'خشابي', child: Text('خشابي')),
+                                ],
+                                onChanged: (v) {
+                                  if (v != null) setModalState(() => sectorColor = v);
                                 },
                               ),
                             ),
