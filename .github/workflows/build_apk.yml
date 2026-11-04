@@ -37,24 +37,12 @@ jobs:
           cp -r lib /tmp/lib_backup
           # حفظ وتأمين أيقونات شركة حافظ المخصصة
           mkdir -p /tmp/custom_icons
-          for d in android/app/src/main/res/mipmap-*; do
-            [ -d "" ] || continue
-            bname=""; bname=
-            mkdir -p "/tmp/custom_icons/"
-            cp ""/* "/tmp/custom_icons//" 2>/dev/null || true
-          done
+          cp -r android/app/src/main/res/mipmap-* /tmp/custom_icons/ 2>/dev/null || true
           flutter create . --project-name smart_workshop --org com.smartworkshop --platforms android
           cp /tmp/pubspec_backup.yaml pubspec.yaml
           cp -r /tmp/lib_backup/* lib/
           # استعادة أيقونات شركة حافظ وتثبيتها كأيقونة التطبيق الرسمية
-          if [ -d /tmp/custom_icons ]; then
-            for d in /tmp/custom_icons/*; do
-              [ -d "" ] || continue
-              bname=""
-              mkdir -p "android/app/src/main/res/"
-              cp ""/* "android/app/src/main/res//" 2>/dev/null || true
-            done
-          fi
+          cp -r /tmp/custom_icons/mipmap-* android/app/src/main/res/ 2>/dev/null || true
           if [ -f android_manifest_custom.xml ]; then
             cp android_manifest_custom.xml android/app/src/main/AndroidManifest.xml
           fi
@@ -97,10 +85,11 @@ jobs:
           tag_name: v4.0.${{ github.run_number }}
           name: "إصدار تطبيق الورشة الذكية المخصص v4.0.${{ github.run_number }}"
           body: |
-            ### نسخة تطبيق الورشة الذكية المخصصة (بدون إعلانات)
-            - إضافة قطاعات جديدة بالاسم والصورة وتحديد أجزاء القطاع (حلق، ضلفة، سكينة، إضافات) وعدد القطع في الشباك مع شاشة معاينة فورية.
-            - قائمة تسعير خارجية شاملة لأسعار متر القطاعات، أنواع الزجاج الفردي والدبل، السبيسر، والجورجيا.
-            - سجل عملاء كامل قابل للتعديل في أي وقت مع إصدار 2 ملف PDF لكل عميل (كشف عرض السعر + كشف الطلبية الشامل وتقسيم الأعواد 600 سم).
+            ### نسخة تطبيق الورشة الذكية المخصصة (شركة الحافظ)
+            - إضافة وتصميم الفتحات المعمارية مع الثوابت في الاتجاهات الأربعة (فوق، تحت، يمين، شمال) وفتحة الشفاط.
+            - معاينة حية 2D بالرسم المعماري وخطوط الأبعاد.
+            - كافة قطاعات الورشة الذكية الـ 33 كاملة بما فيها إيمابن uPVC المصري والـ uPVC المستورد مع إمكانية تعديل التخصيمات.
+            - توليد ملفين PDF رسميين بهوية شركة حافظ والخط العربي الأصلي وحفظهما في مجلد التنزيلات.
           files: Smart_Workshop_Custom_Release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
