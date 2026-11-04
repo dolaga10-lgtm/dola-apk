@@ -188,10 +188,11 @@ class WorkshopStorage extends ChangeNotifier {
           double.parse((stockLengthCm - waste).toStringAsFixed(2));
       plans.add(BarCutPlan(
         barNumber: i + 1,
-        stockLengthCm: stockLengthCm,
+        barLengthCm: stockLengthCm,
         cutsCm: bins[i],
         usedLengthCm: used,
         wasteLengthCm: waste,
+        wastePercentage: stockLengthCm > 0 ? (waste / stockLengthCm) * 100 : 0.0,
       ));
     }
     return plans;

@@ -1,56 +1,80 @@
 import 'dart:math' as math;
 
-/// جزء أو قطعة من مكونات القطاع (حلق، درفة، سكينة، باكتة، محبس، إلخ)
+/// جزء أو قطعة من مكونات القطاع (حلق، ضلفة، سكينة، باكتة، محبس، إلخ)
 class SectorPart {
   String id;
-  String name; // اسم القطعة (مثال: سكينة تداخل، حلق علوي وسفلي، قائم درفة، مكمل...)
-  String role; // حلق | درفة | سكينة | سلك | باكتة | مكمل | مخصص
-  String dimensionBasis; // width | height | width_per_sash | perimeter
-  double deductFromWidthCm; // التخصيم من العرض (سم)
-  double deductFromHeightCm; // التخصيم من الارتفاع (سم)
-  int multiplier; // كم قطعة لكل درفة أو لكل شباك (1، 2، 4...)
-  double addPerSashCm; // إضافة تداخل بالسم
+  String name; // اسم الجزء (مثل: حلق علوي/سفلي، سكينة، قائم ضلفة)
+  String role; // الفئة: حلق | ضلفة | سكينة | إضافي | باكتة | مكمل | مخصص
+  String dimensionBasis; // width | height | width_per_sash | fixed
+  double offsetCm; // قيمة التخصيم أو الإضافة بالسنتيمتر (سالب للخصم، موجب للإضافة)
+  int quantityPerWindow; // العدد المضاف لكل شباك
+  bool multiplyBySashes; // هل يُضرب العدد في عدد الضلف؟
 
   SectorPart({
     required this.id,
     required this.name,
     required this.role,
     required this.dimensionBasis,
-    this.deductFromWidthCm = 0.0,
-    this.deductFromHeightCm = 0.0,
-    this.multiplier = 1,
-    this.addPerSashCm = 0.0,
+    required this.offsetCm,
+    required this.quantityPerWindow,
+    this.multiplyBySashes = false,
   });
 
-  /// حساب طول القص الصافي للقطعة بناءً على مقاسات الشباك وعدد الدلف
-  double calculatePieceLength(double windowWidthCm, double windowHeightCm, int sashCount) {
-    final int safeSashes = sashCount > 0 ? sashCount : 1;
-    double rawLength = 0.0;
+  /// توافق مع أسماء الخصائص البديلة
+  double get deductFromWidthCm => -offsetCm;
+  double get deductFromHeightCm => -offsetCm;
+  int get multiplier => quantityPerWindow;
+  double get addPerSashCm => offsetCm;
 
+  /// حساب طول القطعة الواحدة بالسنتيمتر بناءً على عرض وارتفاع الشباك وعدد الضلف
+  double calculatePieceLength(double widthCm, double heightCm, int sashCount) {
+    final int safeSashes = sashCount > 0 ? sashCount : 1;
+    double baseVal = 0.0;
     switch (dimensionBasis) {
       case 'width':
-        rawLength = windowWidthCm - deductFromWidthCm;
+        baseVal = widthCm;
         break;
       case 'height':
-        rawLength = windowHeightCm - deductFromHeightCm;
+        baseVal = heightCm;
         break;
       case 'width_per_sash':
-        rawLength = ((windowWidthCm - deductFromWidthCm) / safeSashes) + addPerSashCm;
+        baseVal = widthCm / safeSashes;
         break;
-      case 'perimeter':
-        rawLength = (2 * (windowWidthCm - deductFromWidthCm)) + (2 * (windowHeightCm - deductFromHeightCm));
+      case 'fixed':
+        baseVal = 0.0;
         break;
       default:
-        rawLength = windowWidthCm;
+        baseVal = widthCm;
     }
-    return math.max(0.0, double.parse(rawLength.toStringAsFixed(2)));
+    final double result = baseVal + offsetCm;
+    return result > 0 ? double.parse(result.toStringAsFixed(2)) : 0.0;
   }
 
-  int calculateTotalPieces(int sashCount) {
-    if (role == 'درفة' || role == 'سكينة' || dimensionBasis == 'width_per_sash') {
-      return (sashCount > 0 ? sashCount : 1) * multiplier;
+  /// حساب إجمالي عدد القطع المطلوبة لهذا الجزء
+  int calculateTotalCount(int windowQuantity, int sashCount) {
+    final int safeWindows = windowQuantity > 0 ? windowQuantity : 1;
+    final int safeSashes = sashCount > 0 ? sashCount : 1;
+    final int perWindow = multiplyBySashes
+        ? (quantityPerWindow * safeSashes)
+        : quantityPerWindow;
+    return perWindow * safeWindows;
+  }
+
+  int calculateTotalPieces(int sashCount) => calculateTotalCount(1, sashCount);
+
+  String get basisArabicLabel {
+    switch (dimensionBasis) {
+      case 'width':
+        return 'العرض الكلي (W)';
+      case 'height':
+        return 'الارتفاع الكلي (H)';
+      case 'width_per_sash':
+        return 'العرض ÷ عدد الضلف';
+      case 'fixed':
+        return 'طول ثابت (سم)';
+      default:
+        return 'العرض الكلي (W)';
     }
-    return multiplier;
   }
 
   Map<String, dynamic> toJson() => {
@@ -58,21 +82,22 @@ class SectorPart {
         'name': name,
         'role': role,
         'dimensionBasis': dimensionBasis,
-        'deductFromWidthCm': deductFromWidthCm,
-        'deductFromHeightCm': deductFromHeightCm,
-        'multiplier': multiplier,
-        'addPerSashCm': addPerSashCm,
+        'offsetCm': offsetCm,
+        'quantityPerWindow': quantityPerWindow,
+        'multiplyBySashes': multiplyBySashes,
       };
 
   factory SectorPart.fromJson(Map<String, dynamic> json) => SectorPart(
-        id: json['id'] ?? '',
-        name: json['name'] ?? '',
-        role: json['role'] ?? 'مخصص',
-        dimensionBasis: json['dimensionBasis'] ?? 'width',
-        deductFromWidthCm: (json['deductFromWidthCm'] as num?)?.toDouble() ?? 0.0,
-        deductFromHeightCm: (json['deductFromHeightCm'] as num?)?.toDouble() ?? 0.0,
-        multiplier: json['multiplier'] ?? 1,
-        addPerSashCm: (json['addPerSashCm'] as num?)?.toDouble() ?? 0.0,
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        role: json['role']?.toString() ?? 'حلق',
+        dimensionBasis: json['dimensionBasis']?.toString() ?? 'width',
+        offsetCm: (json['offsetCm'] as num?)?.toDouble() ??
+            (-(json['deductFromWidthCm'] as num? ?? 0.0).toDouble()),
+        quantityPerWindow: (json['quantityPerWindow'] as num?)?.toInt() ??
+            (json['multiplier'] as num?)?.toInt() ??
+            1,
+        multiplyBySashes: json['multiplyBySashes'] == true,
       );
 }
 
@@ -80,7 +105,8 @@ class SectorPart {
 class SectorProfile {
   String id;
   String name;
-  String companyGroup; // الشارقة | السعد PS | الدولية ماكسيم | ألوميل | فولكانو | فالف | uPVC | مطابخ | مخصص
+  String category; // جرار | مفصلي | مطبخ | ثابت | مخصص
+  String companyGroup; // الشارقة | السعد PS | الدولية ماكسيم | ألوميل | فولكانو | فالف | uPVC المصري | uPVC المستورد | مطابخ | مخصص
   String systemType; // شباك جرار | باب جرار | شباك مفصلي | باب مفصلي | قلاب | مطبخ | مخصص
   int defaultSashCount;
   String? imagePath;
@@ -89,11 +115,11 @@ class SectorProfile {
   double glassHeightDeductCm;
   bool isCustom;
   List<SectorPart> parts;
-  String get category => companyGroup;
 
   SectorProfile({
     required this.id,
     required this.name,
+    this.category = 'جرار',
     required this.companyGroup,
     required this.systemType,
     this.defaultSashCount = 2,
@@ -106,12 +132,12 @@ class SectorProfile {
   });
 
   bool get isDoor => systemType.contains('باب');
-  bool get isSliding => systemType.contains('جرار');
-  bool get isHinged => systemType.contains('مفصلي') || systemType.contains('قلاب');
+  bool get isSliding => systemType.contains('جرار') || category.contains('جرار');
+  bool get isHinged => systemType.contains('مفصلي') || systemType.contains('قلاب') || category.contains('مفصلي');
 
   double calculateSingleSashWidth(double widthCm, int sashCount) {
     for (final p in parts) {
-      if (p.role == 'درفة' || p.role == 'ضلفة') {
+      if (p.role == 'ضلفة' || p.role == 'درفة') {
         if (p.dimensionBasis == 'width_per_sash' || p.dimensionBasis == 'width') {
           return p.calculatePieceLength(widthCm, 0, sashCount);
         }
@@ -123,7 +149,7 @@ class SectorProfile {
 
   double calculateSingleSashHeight(double heightCm, int sashCount) {
     for (final p in parts) {
-      if ((p.role == 'درفة' || p.role == 'ضلفة') && p.dimensionBasis == 'height') {
+      if ((p.role == 'ضلفة' || p.role == 'درفة') && p.dimensionBasis == 'height') {
         return p.calculatePieceLength(0, heightCm, sashCount);
       }
     }
@@ -143,6 +169,7 @@ class SectorProfile {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
+        'category': category,
         'companyGroup': companyGroup,
         'systemType': systemType,
         'defaultSashCount': defaultSashCount,
@@ -157,8 +184,9 @@ class SectorProfile {
   factory SectorProfile.fromJson(Map<String, dynamic> json) => SectorProfile(
         id: json['id'] ?? '',
         name: json['name'] ?? '',
-        companyGroup: json['companyGroup'] ?? 'عام',
-        systemType: json['systemType'] ?? 'شباك جرار',
+        category: json['category'] ?? 'جرار',
+        companyGroup: json['companyGroup'] ?? json['category'] ?? 'عام',
+        systemType: json['systemType'] ?? json['category'] ?? 'شباك جرار',
         defaultSashCount: json['defaultSashCount'] ?? 2,
         imagePath: json['imagePath'],
         pricePerSquareMeter: (json['pricePerSquareMeter'] as num?)?.toDouble() ?? 2500.0,
@@ -266,14 +294,14 @@ class PricingSettings {
       );
 }
 
-/// عنصر شباك أو باب مقايسة العميل مع التكوين المعماري المتقدم
+/// عنصر شباك أو باب مقايسة العميل
 class ClientWindowItem {
   String id;
-  String label; // وصف الفتحة (شباك صالة، باب بلكونة، مطبخ، إلخ)
-  String unitType; // شباك | باب | مطبخ
-  String openType; // جرار | مفصلي | قلاب | ثابت
-  String barType; // بار عادي | بار مقلوب | بدون بار
-  String openDirection; // يمين للداخل | شمال للداخل | يمين للخارج | شمال للخارج
+  String label;
+  String unitType;
+  String openType;
+  String barType;
+  String openDirection;
   String sectorId;
   String sectorName;
   double sectorPricePerM2;
@@ -292,13 +320,13 @@ class ClientWindowItem {
   bool hasLeftFixed;
   double leftFixedWidthCm;
   bool hasExhaustFan;
-  String exhaustFanShape; // دائري | مربع
+  String exhaustFanShape;
   double exhaustFanDiameterCm;
-  String exhaustFanPosition; // في الثابت العلوي | في الدرفة يمين | في الدرفة شمال
+  String exhaustFanPosition;
 
   // إعدادات الزجاج
   bool hasGlass;
-  bool isDoubleGlass; // يجمع الفردتين + السبيسر
+  bool isDoubleGlass;
   String? glass1Id;
   String glass1Name;
   double glass1PricePerM2;
@@ -352,7 +380,6 @@ class ClientWindowItem {
     this.georgianPricePerMeter = 85.0,
   });
 
-  /// مساحة الفتحة بالمتر المربع
   double singleWindowAreaM2({bool minOneM2 = false}) {
     final double rawArea = (widthCm / 100.0) * (heightCm / 100.0);
     if (minOneM2 && rawArea < 1.0) {
@@ -552,21 +579,31 @@ class ClientRecord {
 
 /// نموذج خطة تقطيع العود 600 سم
 class BarCutPlan {
-  int barIndex;
+  int barNumber;
+  int get barIndex => barNumber;
+  set barIndex(int v) => barNumber = v;
+
   double barLengthCm;
   double kerfMm;
-  List<double> cutPiecesCm;
+
+  List<double> cutsCm;
+  List<double> get cutPiecesCm => cutsCm;
+  set cutPiecesCm(List<double> v) => cutsCm = v;
+
   double usedLengthCm;
   double wasteLengthCm;
   double wastePercentage;
 
   BarCutPlan({
-    required this.barIndex,
+    int? barNumber,
+    int? barIndex,
     this.barLengthCm = 600.0,
     this.kerfMm = 4.0,
-    required this.cutPiecesCm,
+    List<double>? cutsCm,
+    List<double>? cutPiecesCm,
     required this.usedLengthCm,
     required this.wasteLengthCm,
     required this.wastePercentage,
-  });
+  })  : barNumber = barNumber ?? barIndex ?? 1,
+        cutsCm = cutsCm ?? cutPiecesCm ?? [];
 }

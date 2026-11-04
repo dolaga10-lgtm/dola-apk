@@ -777,9 +777,9 @@ class PdfGeneratorService {
     if (item.hasExhaustFan) {
       canvas.setFillColor(const PdfColor.fromInt(0xFFEF4444));
       if (item.hasTopFixed) {
-        canvas.drawCircle(barThick + (innerW / 2), barThick + (topFixedH / 2), topFixedH * 0.35);
+        canvas.drawEllipse(barThick + (innerW / 2), barThick + (topFixedH / 2), topFixedH * 0.35, topFixedH * 0.35);
       } else {
-        canvas.drawCircle(midX + (midW * 0.75), midY + (midH * 0.35), midH * 0.22);
+        canvas.drawEllipse(midX + (midW * 0.75), midY + (midH * 0.35), midH * 0.22, midH * 0.22);
       }
       canvas.fillPath();
     }
@@ -807,5 +807,28 @@ class PdfGeneratorService {
     required String filename,
   }) async {
     await Printing.sharePdf(bytes: bytes, filename: filename);
+  }
+
+  /// دوال التوافق مع الشاشات السابقة
+  static Future<File> savePdfToDeviceStorage({required Uint8List bytes, required String fileName}) =>
+      savePdfToDevice(bytes: bytes, filename: fileName);
+
+  static Future<void> previewPdfBytes(Uint8List bytes, String fileName) =>
+      printOrSharePdf(bytes: bytes, filename: fileName);
+
+  static Future<Uint8List> buildOrderAndCuttingPdfBytes({
+    required ClientRecord client,
+    required WorkshopStorage storage,
+  }) => buildCuttingListPdfBytes(client: client, storage: storage);
+
+  static Future<void> generateAndShareBothPdfs({
+    required ClientRecord client,
+    required WorkshopStorage storage,
+  }) async {
+    final quoteBytes = await buildQuotationPdfBytes(client: client, storage: storage);
+    final orderBytes = await buildCuttingListPdfBytes(client: client, storage: storage);
+    final f1 = await savePdfToDevice(bytes: quoteBytes, filename: 'عرض_سعر_شركة_الحافظ_${client.clientName}.pdf');
+    final f2 = await savePdfToDevice(bytes: orderBytes, filename: 'كشف_طلبية_شركة_الحافظ_${client.clientName}.pdf');
+    await Share.shareXFiles([XFile(f1.path), XFile(f2.path)], text: 'عرض سعر وطلبية العميل: ${client.clientName}');
   }
 }
